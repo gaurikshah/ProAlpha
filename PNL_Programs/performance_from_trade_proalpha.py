@@ -3,6 +3,7 @@ import openpyxl as xl
 import numpy as np
 from pathlib import Path
 from Individual_Trades import Individual_Trades
+import price_data_csv_update
 from Trade_Generation import creating_individual_trade, creating_individual_trade_db
 
 from PNL_Generation import pnl_generation as pg
@@ -19,23 +20,13 @@ if __name__ == '__main__':
 
     baseamount = 10000000
 
-    current_folder_path = Path().absolute().joinpath("Data")
+    current_folder_path = Path().absolute().joinpath("Input Data")
     nifty_price_data = current_folder_path / "Price_Data/Nifty Index.csv"
-    trade_file_path = current_folder_path / "proalpha_data/trade_data_sample.csv"
+    trade_file_path = current_folder_path / "proalpha_data/trade_data.csv"
 
-    price_data_file= current_folder_path / "proalpha_data/OHLC.xlsx"
+    price_data_csv_update()
 
-    wb = xl.load_workbook(price_data_file)
 
-    sheet_name=wb.get_sheet_names()
-
-    data={}
-
-    for i in sheet_name:
-        data[i]=pd.DataFrame(wb.get_sheet_by_name(i).values)
-        set_dataframe(data[i])
-
-    symbols = data["CLOSE"].columns
 
     price_data={}
 

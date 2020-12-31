@@ -14,14 +14,14 @@ def check_existing_prices_files(folder_path):
     return existing_instruments
 
 
-def price_data_csv_update(file_name="closing_prices.xlsx", folder_path=Path().absolute()):
-    folder_path_closing_prices = folder_path.joinpath("Input Data\proalpha_data")
-    folder_path_instrument_prices = folder_path.joinpath("Input Data\instrument_daily_prices")
+def price_data_csv_update(file_name="closing_prices.xlsx"):
+
+    folder_path_closing_prices = Path().absolute().joinpath("Input Data\proalpha_data")
+    folder_path_instrument_prices = Path().absolute().joinpath("Input Data\instrument_daily_prices")
 
     closing_prices_file = folder_path_closing_prices / file_name
 
     wb = openpyxl.load_workbook(closing_prices_file)
-
     sheet_names = wb.get_sheet_names()
     ws = wb.get_sheet_by_name(sheet_names[0])
     closing_prices = pd.DataFrame(ws.values)
