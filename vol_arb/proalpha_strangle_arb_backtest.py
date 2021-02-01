@@ -89,6 +89,7 @@ if __name__ == "__main__":
     delta_calls = pd.DataFrame()
     delta_puts = pd.DataFrame()
     basket_delta = pd.DataFrame(index=call_prices.index)
+    basket_data=pd.DataFrame()
 
     weights_list = map(lambda x: (x[1]), weights)
     weights_list = list(weights_list)
@@ -132,10 +133,12 @@ if __name__ == "__main__":
     index_prices=daily_prices.pop(index_symbol)
 
     correl=calculate_correlation(index_prices,daily_prices,weights_list)
-    implied_volatility_ratio["correl"]=correl.loc[call_prices.index]
-    implied_volatility_ratio["combined_delta"] = combined_delta
 
-    implied_volatility_ratio.name="IV_ratio"
+    basket_data["IV_ratio"]=implied_volatility_ratio
+    basket_data["correl"]=correl.loc[call_prices.index]
+    basket_data["combined_delta"] = combined_delta
+
+    basket_data.name="Basket_data"
 #    combined_delta.name="combined_delta"
     implied_vols_calls.name="IV_calls"
     implied_vols_puts.name="IV_puts"
@@ -143,7 +146,7 @@ if __name__ == "__main__":
     delta_puts.name="Put_deltas"
 
 
-    data_frames=[implied_volatility_ratio,implied_vols_calls,implied_vols_puts,delta_calls,delta_puts]
+    data_frames=[basket_data,implied_vols_calls,implied_vols_puts,delta_calls,delta_puts]
 
 
     my_funcs.excel_creation(data_frames, current_folder_path, output_file_name)
