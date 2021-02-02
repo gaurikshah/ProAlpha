@@ -21,12 +21,44 @@ def import_data(input_file_path):
 
     stock_symbols = daily_prices.columns
 
+    expiry_dates.dropna()
+    daily_prices=daily_prices.loc[daily_prices.index.dropna()]
+    futures_prices=futures_prices.loc[futures_prices.index.dropna()]
+    strike_prices=strike_prices.loc[strike_prices.index.dropna()]
+    call_prices=call_prices.loc[call_prices.index.dropna()]
+    put_prices=put_prices.loc[put_prices.index.dropna()]
+
     return expiry_dates, daily_prices, futures_prices, strike_prices, call_prices, put_prices, stock_symbols, weights
 
 
 def create_instrument_list():
     pass
 
+def calculate_strategy_pnl(daily_prices,strike_prices,call_prices,put_prices,weights_list,index_symbol):
+
+    settlement_prices=daily_prices.shift(-1).fillna(0)
+    calls_pnl=(settlement_prices-strike_prices)/daily_prices
+    puts_pnl=(strike_prices-settlement_prices)/daily_prices
+
+    calls_pnl_long=calls_pnl[calls_pnl>0].fillna(0)
+    puts_pnl_long=puts_pnl[puts_pnl>0].fillna(0)
+    calls_pnl_short=calls_pnl[calls_pnl<0].fillna(0)
+    puts_pnl_short=puts_pnl[puts_pnl<0].fillna(0)
+
+    initial_cost=(call_prices+put_prices)/daily_prices
+
+    index_pnl=initial_cost[index_symbol]+(calls_pnl_short[index_symbol]+puts_pnl_short[index_symbol])
+    index_pnl=index_pnl/daily_prices.iloc[:,0]
+
+    options_pnl=calls_pnl_long+puts_pnl_long-initial_cost
+    options_pnl=options_pnl/daily_prices
+
+    options_pnl.pop(index_symbol)
+
+    options_pnl=options_pnl.dot(weights_list)
+    strategy_pnl=index_pnl+options_pnl
+
+    return strategy_pnl,initial_cost,options_pnl
 
 def calculate_implied_vols(option_price, futures_price, strike_price, time_to_expiry, flag,
                            risk_free_interest_rate=0.06):
@@ -78,6 +110,13 @@ if __name__ == "__main__":
     strike_prices, call_prices, put_prices, stock_symbols, \
     weights = import_data(input_file_path)
 
+    index_symbol = stock_symbols[0]
+    weights_list = map(lambda x: (x[1]), weights)
+    weights_list = list(weights_list)
+
+    stock_prices=daily_prices.loc[call_prices.index]
+    strategy_pnl,initial_cost,options_pnl=calculate_strategy_pnl(stock_prices,strike_prices,call_prices,put_prices,weights_list,index_symbol)
+
     current_expiry = expiry_dates.index.to_series()
     next_expiry = pd.to_datetime(expiry_dates["next_expiry_date"])
 
@@ -91,8 +130,6 @@ if __name__ == "__main__":
     basket_delta = pd.DataFrame(index=call_prices.index)
     basket_data=pd.DataFrame()
 
-    weights_list = map(lambda x: (x[1]), weights)
-    weights_list = list(weights_list)
 
     for stock in stock_symbols:
 
@@ -118,7 +155,6 @@ if __name__ == "__main__":
                                                                 risk_free_interest_rate,
                                                                 implied_vols_puts.at[expiry_date, stock])
 
-    index_symbol = stock_symbols[0]
     combined_delta = delta_calls + delta_puts
     index_delta = combined_delta.pop(index_symbol)
     combined_delta = combined_delta.dot(weights_list)
@@ -137,6 +173,8 @@ if __name__ == "__main__":
     basket_data["IV_ratio"]=implied_volatility_ratio
     basket_data["correl"]=correl.loc[call_prices.index]
     basket_data["combined_delta"] = combined_delta
+    basket_data["strategy_pnl"]=strategy_pnl
+    basket_data["strategy_cost"]=initial_cost[index_symbol]-initial_cost.iloc[:,1:].dot(weights_list)
 
     basket_data.name="Basket_data"
 #    combined_delta.name="combined_delta"
@@ -145,8 +183,14 @@ if __name__ == "__main__":
     delta_calls.name="Call_deltas"
     delta_puts.name="Put_deltas"
 
+    call_prices.name="Call_prices"
+    put_prices.name="Put_prices"
 
-    data_frames=[basket_data,implied_vols_calls,implied_vols_puts,delta_calls,delta_puts]
+    options_pnl.name="Options_PNL"
+
+
+    data_frames=[basket_data,implied_vols_calls,implied_vols_puts,delta_calls,delta_puts,call_prices,put_prices,
+                 options_pnl]
 
 
     my_funcs.excel_creation(data_frames, current_folder_path, output_file_name)
