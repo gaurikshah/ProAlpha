@@ -47,11 +47,9 @@ def calculate_strategy_pnl(daily_prices,strike_prices,call_prices,put_prices,wei
 
     initial_cost=(call_prices+put_prices)/daily_prices
 
-    index_pnl=initial_cost[index_symbol]+(calls_pnl_short[index_symbol]+puts_pnl_short[index_symbol])
-    index_pnl=index_pnl/daily_prices.iloc[:,0]
+    index_pnl=(calls_pnl_long[index_symbol]+puts_pnl_long[index_symbol])-initial_cost[index_symbol]
 
-    options_pnl=calls_pnl_long+puts_pnl_long-initial_cost
-    options_pnl=options_pnl/daily_prices
+    options_pnl=calls_pnl_short+puts_pnl_short+initial_cost
 
     options_pnl.pop(index_symbol)
 
@@ -174,7 +172,7 @@ if __name__ == "__main__":
     basket_data["correl"]=correl.loc[call_prices.index]
     basket_data["combined_delta"] = combined_delta
     basket_data["strategy_pnl"]=strategy_pnl
-    basket_data["strategy_cost"]=initial_cost[index_symbol]-initial_cost.iloc[:,1:].dot(weights_list)
+    basket_data["strategy_cost"]=initial_cost.iloc[:,1:].dot(weights_list)-initial_cost[index_symbol]
 
     basket_data.name="Basket_data"
 #    combined_delta.name="combined_delta"
